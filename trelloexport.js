@@ -19,9 +19,28 @@ var $,
 
 
 // Variables
-var $excel_btn,
-    addInterval,
-    columnHeadings = ['List', 'Title', 'Description', 'Points', 'Due', 'Members', 'Labels', 'Card #', 'Card URL'];
+var $excel_btn;
+var addInterval;
+
+// var columnHeadings = [
+//     'List',
+//     'Title',
+//     'Description',
+//     'Points',
+//     'Due',
+//     'Members',
+//     'Labels',
+//     'Card #',
+//     'Card URL'
+// ];
+
+var columnHeadings = [
+    'Labels',
+    'Title',
+    'List',
+    'Due',
+    'Last update',
+];
 
 window.URL = window.webkitURL || window.URL;
 
@@ -30,17 +49,17 @@ function createExcelExport() {
     // RegEx to find the points for users of TrelloScrum
     var pointReg = /[\(](\x3f|\d*\.?\d+)([\)])\s?/m;
 
-	var boardExportURL = $('a.js-export-json').attr('href');
-	//RegEx to extract Board ID
-	var parts = /\/b\/(\w{8})\.json/.exec(boardExportURL);
+    var boardExportURL = $('a.js-export-json').attr('href');
+    //RegEx to extract Board ID
+    var parts = /\/b\/(\w{8})\.json/.exec(boardExportURL);
 
-	if(!parts) {
-		alert("Board menu not open.");
-		return;
-	}
+    if (!parts) {
+        alert("Board menu not open.");
+        return;
+    }
 
-	var idBoard = parts[1];
-	var apiURL = "https://trello.com/1/boards/" + idBoard + "?lists=all&cards=all&card_attachments=cover&card_stickers=true&card_fields=badges%2Cclosed%2CdateLastActivity%2Cdesc%2CdescData%2Cdue%2CidAttachmentCover%2CidList%2CidBoard%2CidMembers%2CidShort%2Clabels%2CidLabels%2Cname%2Cpos%2CshortUrl%2CshortLink%2Csubscribed%2Curl&card_checklists=none&members=all&member_fields=fullName%2Cinitials%2CmemberType%2Cusername%2CavatarHash%2Cbio%2CbioData%2Cconfirmed%2Cproducts%2Curl%2Cstatus&membersInvited=all&membersInvited_fields=fullName%2Cinitials%2CmemberType%2Cusername%2CavatarHash%2Cbio%2CbioData%2Cconfirmed%2Cproducts%2Curl&checklists=none&organization=true&organization_fields=name%2CdisplayName%2Cdesc%2CdescData%2Curl%2Cwebsite%2Cprefs%2Cmemberships%2ClogoHash%2Cproducts&myPrefs=true&fields=name%2Cclosed%2CdateLastActivity%2CdateLastView%2CidOrganization%2Cprefs%2CshortLink%2CshortUrl%2Curl%2Cdesc%2CdescData%2Cinvitations%2Cinvited%2ClabelNames%2Cmemberships%2Cpinned%2CpowerUps%2Csubscribed";
+    var idBoard = parts[1];
+    var apiURL = "https://trello.com/1/boards/" + idBoard + "?lists=all&cards=all&card_attachments=cover&card_stickers=true&card_fields=badges%2Cclosed%2CdateLastActivity%2Cdesc%2CdescData%2Cdue%2CidAttachmentCover%2CidList%2CidBoard%2CidMembers%2CidShort%2Clabels%2CidLabels%2Cname%2Cpos%2CshortUrl%2CshortLink%2Csubscribed%2Curl&card_checklists=none&members=all&member_fields=fullName%2Cinitials%2CmemberType%2Cusername%2CavatarHash%2Cbio%2CbioData%2Cconfirmed%2Cproducts%2Curl%2Cstatus&membersInvited=all&membersInvited_fields=fullName%2Cinitials%2CmemberType%2Cusername%2CavatarHash%2Cbio%2CbioData%2Cconfirmed%2Cproducts%2Curl&checklists=none&organization=true&organization_fields=name%2CdisplayName%2Cdesc%2CdescData%2Curl%2Cwebsite%2Cprefs%2Cmemberships%2ClogoHash%2Cproducts&myPrefs=true&fields=name%2Cclosed%2CdateLastActivity%2CdateLastView%2CidOrganization%2Cprefs%2CshortLink%2CshortUrl%2Curl%2Cdesc%2CdescData%2Cinvitations%2Cinvited%2ClabelNames%2Cmemberships%2Cpinned%2CpowerUps%2Csubscribed";
 
     $.getJSON(apiURL, function (data) {
 
@@ -87,17 +106,17 @@ function createExcelExport() {
             // Iterate through each card and transform data as needed
             $.each(data.cards, function (i, card) {
                 if (card.idList === list_id) {
-                    var title = card.name,
-                        parsed = title.match(pointReg),
-                        points = parsed ? parsed[1] : '',
-                        due = card.due || '',
-                        memberIDs,
-                        memberInitials = [],
-                        labels = [],
-                        d = new Date(due),
-                        rowData = [],
-                        rArch,
-                        r;
+                    var title = card.name;
+                    var parsed = title.match(pointReg);
+                    var points = parsed ? parsed[1] : '';
+                    var due = card.due || '';
+                    var lastUpdate = card.dateLastActivity || '';
+                    var memberIDs;
+                    var memberInitials = [];
+                    var labels = [];
+                    var rowData = [];
+                    var rArch;
+                    var r;
 
                     title = title.replace(pointReg, '');
 
@@ -127,20 +146,34 @@ function createExcelExport() {
 
                     // Need to set dates to the Date type so xlsx.js sets the right datatype
                     if (due !== '') {
-                        due = d;
+                        due = new Date(due);
                     }
 
+                    if (lastUpdate !== '') {
+                        lastUpdate = new Date(lastUpdate);
+                    }
+
+                    // rowData = [
+                    //     listName,
+                    //     title,
+                    //     card.desc,
+                    //     points,
+                    //     due,
+                    //     memberInitials.toString(),
+                    //     labels.toString(),
+                    //     card.idShort,
+                    //     card.shortUrl
+                    // ];
+
                     rowData = [
-                        listName,
-                        title,
-                        card.desc,
-                        points,
-                        due,
-                        memberInitials.toString(),
                         labels.toString(),
-                        card.idShort,
-						card.shortUrl
+                        title,
+                        listName,
+                        due,
+                        lastUpdate,
                     ];
+
+                    // console.log(JSON.stringify(card, null, 2));
 
                     // Writes all closed items to the Archived tab
                     // Note: Trello allows open cards on closed lists
